@@ -1,0 +1,7 @@
+name: social-media-studio
+run: docker compose up -d && uvicorn app.main:app --reload
+seed: "N/A yet — added Day 2 once database models exist"
+test: pytest
+base_url: http://127.0.0.1:8000
+endpoints:
+  - GET /health
