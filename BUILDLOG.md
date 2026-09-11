@@ -27,3 +27,25 @@ Updated daily.
 
 **What I changed / would change:**
 - (fill in as you make your own edits)
+
+## Day 3 — Post ingestion
+
+**Where AI helped:**
+- Designed the Pydantic schema split (PostCreate vs PostResponse) and the
+  content_fetcher service for URL text extraction.
+- Wrote scripts/smoke_test_api.py using FastAPI's dependency override system
+  to test route logic without needing a live Postgres connection.
+
+**What I understand and can explain:**
+- Why source_type determines whether we fetch-and-extract or store raw text.
+- Why a failed URL fetch returns 422, not 500 — it's bad client input, not a
+  server failure.
+- Why the smoke test needed `poolclass=StaticPool` for SQLite specifically —
+  a SQLite-in-memory quirk where each new connection gets a separate empty
+  database unless forced to reuse one connection.
+
+**What I changed / would change:**
+- Fixed a real-world issue: Wikipedia (and similar sites) reject requests
+  with non-browser User-Agent headers, returning 403. Our error handling
+  worked correctly (clean 4xx, not a crash) — the fix was using a realistic
+  browser User-Agent string so legitimate fetches succeed.

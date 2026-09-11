@@ -62,3 +62,43 @@ $ docker exec -it sms_postgres psql -U studio_user -d social_studio -c "\dt"
  public | variants         | table | studio_user
 (5 rows)
 \`\`\`
+
+
+## Day 3 — Post ingestion
+
+**Proof: full route logic verified (SQLite smoke test).**
+
+\`\`\`
+$ python scripts/smoke_test_api.py
+1) Creating a post from pasted Markdown...
+   ✅ Created post ... — title parsed correctly: 'Red Foxes'
+2) Fetching that post back by ID...
+   ✅ Post retrieved correctly.
+3) Listing all posts...
+   ✅ List endpoint returned 1 post(s).
+4) Submitting a blank Markdown post (should be rejected)...
+   ✅ Correctly rejected with 422.
+5) Requesting a post that doesn't exist (should 404)...
+   ✅ Correctly returned 404.
+6) Creating a post from a real URL (github.com)...
+   ✅ URL fetched and extracted — 15137 chars of text stored.
+SMOKE TEST PASSED — post ingestion works correctly.
+\`\`\`
+
+**Proof: real write to Postgres via running API.**
+
+\`\`\`
+$ curl -X POST http://127.0.0.1:8000/posts -H "Content-Type: application/json" \
+  -d '{"source_type":"markdown","source_content":"# Red Foxes\n\nFoxes are clever animals."}'
+{"id":"68c31c80-c35b-4716-9dba-0433f56bcc50","source_type":"markdown","source_content":"# Red Foxes\n\nFoxes are clever animals.","title":"Red Foxes","created_at":"2026-09-11T09:25:10.285084Z"}
+\`\`\`
+
+**Proof: bad URL input is rejected cleanly, not with a server crash.**
+
+\`\`\`
+$ curl -X POST http://127.0.0.1:8000/posts -H "Content-Type: application/json" \
+  -d '{"source_type":"url","source_content":"https://en.wikipedia.org/wiki/Red_fox"}'
+{"detail":"Could not process URL: URL returned HTTP 403"}
+\`\`\`
+_(Wikipedia blocks non-browser User-Agents — fixed same day by sending a
+realistic User-Agent header. See BUILDLOG.md.)_
