@@ -49,3 +49,31 @@ Updated daily.
   with non-browser User-Agent headers, returning 403. Our error handling
   worked correctly (clean 4xx, not a crash) — the fix was using a realistic
   browser User-Agent string so legitimate fetches succeed.
+
+  ## Day 4 — Variant generation + constraint profiles
+
+**Where AI helped:**
+- Designed the constraint profile data structure (per-platform max_length,
+  max_hashtags) using real platform limits (X 280 chars, LinkedIn 3000,
+  Instagram 2200 chars/30 hashtags, Telegram 4096 chars).
+- Wrote the template-based generator (deterministic, no AI/API key needed —
+  chose this over a real AI model for simplicity and zero external dependencies).
+- Wrote scripts/smoke_test_variants.py covering both the happy path (4/4
+  platforms generate successfully) and the required "bad variant blocked"
+  evidence (length violation and hashtag violation, each with 422 + reason).
+
+**What I understand and can explain:**
+- Why generation and validation are separate functions — the generator
+  tries to produce good content, but validation is the sole authority on
+  whether it gets stored. A manually-submitted variant and a generated one
+  go through the exact same validation path.
+- Why the /generate endpoint reports "blocked" platforms in its response
+  instead of failing the whole request — some platforms can succeed while
+  others are blocked, and the caller needs visibility into both outcomes.
+
+**What I changed / would change:**
+- Caught my own mistake in an example curl command — the first attempt to
+  demonstrate a blocked variant used text that was actually under X's 280
+  character limit (116 chars), so it was correctly accepted. Not a bug —
+  just a bad test input. Fixed by using genuinely oversized text (336 chars)
+  and confirmed the 422 + exact violation message.

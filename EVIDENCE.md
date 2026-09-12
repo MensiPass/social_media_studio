@@ -102,3 +102,48 @@ $ curl -X POST http://127.0.0.1:8000/posts -H "Content-Type: application/json" \
 \`\`\`
 _(Wikipedia blocks non-browser User-Agents — fixed same day by sending a
 realistic User-Agent header. See BUILDLOG.md.)_
+
+## Day 4 — Variant generation + constraint profiles
+
+**Proof: route logic verified end-to-end (SQLite smoke test).**
+
+\`\`\`
+$ python3 scripts/smoke_test_variants.py
+1) Creating a post to generate variants from...
+    Post created: bc6401a0-63e3-4126-8d46-dbcb45ee66b0
+2) Auto-generating variants for all 4 platforms...
+    All 4 platform variants generated and passed validation:
+      - x: 244 chars, status=draft
+      - linkedin: 271 chars, status=draft
+      - instagram: 253 chars, status=draft
+      - telegram: 252 chars, status=draft
+3) Attempting to manually create a variant that BREAKS the X length rule...
+    Correctly blocked with 422. Reason: Exceeds x max length of 280 characters (got 560)
+4) Attempting to manually create a variant that BREAKS the X hashtag rule...
+    Correctly blocked with 422. Reason: Too many hashtags for x: max 2, found 5
+5) Creating a VALID manual variant (should succeed)...
+    Valid variant created successfully.
+6) Listing all variants for this post...
+    List returned 5 variants.
+7) Generating variants for a nonexistent post (should 404)...
+    Correctly returned 404.
+SMOKE TEST PASSED — variant generation and constraint enforcement work correctly.
+\`\`\`
+
+**Proof: real generation against Postgres — one post produces variants for all 4 platforms.**
+
+\`\`\`
+$ curl -X POST http://127.0.0.1:8000/posts/ccd14875.../variants/generate
+{"created":[
+  {"platform":"x","content":"Red Foxes Foxes are clever...#Foxes", ...},
+  {"platform":"linkedin","content":"...What do you think? #Foxes", ...},
+  {"platform":"instagram","content":"...✨\n#Foxes", ...},
+  {"platform":"telegram","content":"...\n\n#Foxes", ...}
+],"blocked":[]}
+\`\`\`
+
+**Proof: a rule-breaking variant is blocked with a clear, specific error naming the broken rule (real Postgres, not just SQLite).**
+
+\`\`\`
+$ curl -X POST http://127.0.0.1:8000/posts/ccd14875.../variants \
+  -H
