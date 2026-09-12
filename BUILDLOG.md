@@ -77,3 +77,29 @@ Updated daily.
   character limit (116 chars), so it was correctly accepted. Not a bug —
   just a bad test input. Fixed by using genuinely oversized text (336 chars)
   and confirmed the 422 + exact violation message.
+
+
+  ## Day 5 — Review workflow
+
+**Where AI helped:**
+- Designed the state machine as a standalone module (review_workflow.py)
+  rather than inline route logic — so the same approve/reject/edit rules,
+  and specifically the "must be approved to schedule" guard, can be reused
+  unchanged by Day 9's scheduler.
+- Wrote both a pure state-machine unit test and a full API-level smoke test.
+
+**What I understand and can explain:**
+- Why editing a REJECTED variant resets it to DRAFT and clears the rejection
+  reason — a "fix it and resubmit" flow, not a silent edit.
+- Why approved/published variants can't be edited in place — that would
+  silently change content someone already signed off on.
+- Why content validation runs before the state-transition check in the edit
+  endpoint — a clearer error for the caller either way, but content rules
+  are checked first since that's usually the more actionable fix.
+
+**What I changed / would change:**
+- Diagnosed a false alarm: an early server route check showed missing
+  endpoints, which looked like a wiring bug. Root cause was two stale
+  uvicorn processes still bound to port 8000 from earlier days, one of
+  which answered the check with an outdated app version. Killed both
+  and confirmed the real server has all 9 expected endpoints registered.

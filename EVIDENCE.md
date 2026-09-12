@@ -147,3 +147,30 @@ $ curl -X POST http://127.0.0.1:8000/posts/ccd14875.../variants/generate
 \`\`\`
 $ curl -X POST http://127.0.0.1:8000/posts/ccd14875.../variants \
   -H
+
+
+  ## Day 5 — Review workflow
+
+**Proof: full state machine verified (SQLite smoke test).**
+
+\`\`\`
+$ python3 scripts/smoke_test_review.py
+1) Creating a post and generating variants...
+    Created 4 draft variants.
+2) Approving the X variant...
+    X variant approved.
+3) Trying to approve it AGAIN (should be refused, 409)...
+    Correctly refused: Cannot approve a variant with status 'approved'; only draft variants can be approved.
+4) Rejecting the LinkedIn variant with a reason...
+    LinkedIn variant rejected, reason stored.
+5) Editing the rejected variant with new content (should reset to draft)...
+    Edit succeeded, status reset to draft, rejection_reason cleared.
+6) Trying to edit the ALREADY-APPROVED X variant (should be refused, 409)...
+    Correctly refused: Cannot edit a variant with status 'approved'; only draft or rejected variants can be edited.
+7) Trying to edit with content that BREAKS the X constraint profile...
+    Correctly refused: ['Too many hashtags for linkedin: max 5, found 6']
+8) Attempting review actions on a nonexistent variant (should 404)...
+    Correctly returned 404.
+9) Confirming the scheduling guard blocks unapproved variants directly...
+    Unapproved variant correctly refused for scheduling: Cannot schedule a variant with status 'draft'; only approved variants can be scheduled.
+SMOKE TEST PASSED — review

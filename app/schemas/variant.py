@@ -30,6 +30,14 @@ class VariantResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class VariantRejectRequest(BaseModel):
+    reason: str = Field(min_length=1, max_length=1000)
+
+
+class VariantUpdateRequest(BaseModel):
+    content: str = Field(min_length=1, max_length=200_000)
+
+
 class BlockedVariant(BaseModel):
     """Reported (never stored) when a generated variant fails validation."""
 
