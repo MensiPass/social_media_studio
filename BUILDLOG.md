@@ -103,3 +103,31 @@ Updated daily.
   uvicorn processes still bound to port 8000 from earlier days, one of
   which answered the check with an outdated app version. Killed both
   and confirmed the real server has all 9 expected endpoints registered.
+
+  ## Day 6 — Adapter interface + mock adapters
+
+**Where AI helped:**
+- Designed the SocialPublisher ABC and PublishResult dataclass — chose to
+  make PublishResult's fields (success, external_post_id, detail) line up
+  exactly with the publish_attempts table columns from Day 2, so Day 9's
+  worker can convert one directly into the other with no translation logic.
+- Designed the registry as a single dict mapping Platform -> publisher
+  instance, with real adapters (Telegram/LinkedIn) intentionally left
+  unregistered until Days 7-8, raising a clear NotImplementedError instead
+  of failing silently.
+
+**What I understand and can explain:**
+- Why SocialPublisher is an ABC (abstract base class) instead of a plain
+  class with a method that does nothing — Python refuses to instantiate it
+  directly, catching a forgotten implementation at object-creation time
+  instead of at first use.
+- Why publish() is documented to return a failure result rather than raise
+  an exception for expected failures — this keeps Day 9's worker loop
+  simple: it always gets a PublishResult back, never has to guess whether
+  a try/except is needed for "the platform was just down."
+- Why the registry holds shared instances rather than creating a new
+  publisher per call — mirrors how a real adapter (e.g. Telegram) would
+  want to reuse one HTTP client instead of creating a new one per post.
+
+**What I changed / would change:**
+- (none needed — first clean run)

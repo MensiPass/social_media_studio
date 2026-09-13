@@ -174,3 +174,31 @@ $ python3 scripts/smoke_test_review.py
 9) Confirming the scheduling guard blocks unapproved variants directly...
     Unapproved variant correctly refused for scheduling: Cannot schedule a variant with status 'draft'; only approved variants can be scheduled.
 SMOKE TEST PASSED — review
+
+## Day 6 — Adapter interface + mock adapters
+
+**Proof: SocialPublisher interface, both mocks, and the registry all work correctly.**
+
+\`\`\`
+$ python scripts/smoke_test_adapters.py
+1) Confirming SocialPublisher can't be instantiated directly (it's abstract)...
+    Correctly refused: Can't instantiate abstract class SocialPublisher without an implementation for abstract method 'publish'
+2) Testing MockXPublisher directly...
+    Published successfully: [MOCK X] Would post: Foxes are clever animals. #wildlife
+    Recorded in sent_posts: mock-x-c623661fc1
+3) Testing MockInstagramPublisher directly...
+    Published successfully: [MOCK INSTAGRAM] Would post: Foxes are clever animals. #wildlife
+4) Using the registry to publish to X and Instagram with the SAME calling code...
+    X via registry:         mock-x-c17377a126
+    Instagram via registry: mock-ig-6a252b5bde
+    Same function, same call, correctly routed to two different adapters.
+5) Confirming Telegram/LinkedIn correctly raise 'not configured yet' (Day 7-8)...
+    telegram: correctly raised — No publisher configured yet for platform 'telegram'.
+    linkedin: correctly raised — No publisher configured yet for platform 'linkedin'.
+SMOKE TEST PASSED — adapter interface, mocks, and registry all work correctly.
+\`\`\`
+
+**This is also today's proof for the brief's "adapter swap changes configuration, not
+business logic" requirement** — step 4 above calls the exact same
+\`publish_via_registry(platform, content)\` function for two different platforms;
+the function itself has no knowledge of which platform it's talking to.

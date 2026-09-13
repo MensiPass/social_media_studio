@@ -1,0 +1,29 @@
+"""
+Maps each Platform to the publisher implementation currently configured
+for it. This is the ONE place platform -> adapter wiring lives — swap an
+adapter by changing this mapping, never by touching business logic that
+calls .publish().
+
+Real adapters (Telegram, LinkedIn) are added here on Day 7 and Day 8.
+Until then, requesting one of those platforms raises a clear error rather
+than silently doing nothing.
+"""
+from app.db.models.variant import Platform
+from app.adapters.base import SocialPublisher
+from app.adapters.mock_x_adapter import MockXPublisher
+from app.adapters.mock_instagram_adapter import MockInstagramPublisher
+
+_REGISTRY: dict[Platform, SocialPublisher] = {
+    Platform.X: MockXPublisher(),
+    Platform.INSTAGRAM: MockInstagramPublisher(),
+}
+
+
+def get_publisher(platform: Platform) -> SocialPublisher:
+    try:
+        return _REGISTRY[platform]
+    except KeyError as exc:
+        raise NotImplementedError(
+            f"No publisher configured yet for platform '{platform.value}'. "
+            f"(Telegram and LinkedIn adapters are added on Day 7-8.)"
+        ) from exc
