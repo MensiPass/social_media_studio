@@ -9,13 +9,19 @@ Until then, requesting one of those platforms raises a clear error rather
 than silently doing nothing.
 """
 from app.db.models.variant import Platform
+from app.core.config import settings
 from app.adapters.base import SocialPublisher
 from app.adapters.mock_x_adapter import MockXPublisher
 from app.adapters.mock_instagram_adapter import MockInstagramPublisher
+from app.adapters.telegram_adapter import TelegramPublisher
 
 _REGISTRY: dict[Platform, SocialPublisher] = {
     Platform.X: MockXPublisher(),
     Platform.INSTAGRAM: MockInstagramPublisher(),
+    Platform.TELEGRAM: TelegramPublisher(
+        bot_token=settings.telegram_bot_token,
+        chat_id=settings.telegram_chat_id,
+    ),
 }
 
 

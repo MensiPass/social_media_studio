@@ -202,3 +202,41 @@ SMOKE TEST PASSED — adapter interface, mocks, and registry all work correctly.
 business logic" requirement** — step 4 above calls the exact same
 \`publish_via_registry(platform, content)\` function for two different platforms;
 the function itself has no knowledge of which platform it's talking to.
+
+## Day 7 — Telegram adapter (real)
+
+**Proof: adapter registry correctly reflects Telegram as real, LinkedIn as not-yet-built.**
+
+\`\`\`
+$ python scripts/smoke_test_adapters.py
+... (all 6 checks pass, Telegram now returns a real TelegramPublisher instance)
+SMOKE TEST PASSED — adapter interface, mocks, and registry all work correctly.
+\`\`\`
+
+**Proof: error-handling logic verified for missing config, network failure, API rejection, and success (mocked, no real network).**
+
+\`\`\`
+$ python scripts/smoke_test_telegram_unit.py
+1) Missing bot_token/chat_id -> graceful failure, no network call attempted...
+    Telegram not configured: TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID is missing from .env
+2) Simulated network error (e.g. no internet, DNS failure)...
+    Network error contacting Telegram: Connection refused
+3) Simulated Telegram API rejection (e.g. bad token, bad chat_id)...
+    Telegram API rejected the message: Unauthorized
+4) Simulated SUCCESSFUL send...
+    Posted to Telegram, message_id=42
+SMOKE TEST PASSED — Telegram adapter error handling works correctly.
+\`\`\`
+
+**Proof: a REAL message was sent to a real Telegram chat via the real Bot API — the actual brief requirement.**
+
+\`\`\`
+$ python scripts/smoke_test_telegram_live.py
+Bot token starts with: 8684580229...
+Chat ID: 8740868496
+Sending a real test message to your Telegram chat...
+ SUCCESS — message sent!
+   External post ID (Telegram message_id): 4
+   Detail: Posted to Telegram, message_id=4
+\`\`\`
+Verified visually — message appeared in the actual Telegram chat with the bot.

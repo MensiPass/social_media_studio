@@ -131,3 +131,32 @@ Updated daily.
 
 **What I changed / would change:**
 - (none needed — first clean run)
+
+## Day 7 — Telegram adapter (real)
+
+**Where AI helped:**
+- Wrote the real TelegramPublisher against Telegram's Bot API (sendMessage
+  endpoint), following the same PublishResult contract as the mock adapters
+  — no special-casing needed anywhere else in the codebase for "this one's
+  real."
+- Split testing into two layers: a mocked unit test (error-handling logic,
+  runs anywhere, no credentials) and a separate live test (real send, only
+  runs with real .env credentials) — so the general test suite never spams
+  a real Telegram chat on every run.
+
+**What I understand and can explain:**
+- Why publish() catches httpx.RequestError and non-"ok" API responses and
+  converts both into a PublishResult(success=False, ...) instead of letting
+  exceptions propagate — matches the interface contract from Day 6 exactly.
+- Why the bot needs a message sent TO it first before getUpdates returns
+  anything — Telegram only shows updates the bot has actually received,
+  it can't discover a chat_id it's never seen traffic from.
+- The difference between a bot's numeric chat_id (from getUpdates, used
+  for DMs) versus a channel's @username (usable directly as chat_id for
+  public channels) — used the DM approach here for simplicity.
+
+**What I changed / would change:**
+- First getUpdates attempt returned {"ok":false,"error_code":404}. Root
+  cause: the literal placeholder text wasn't replaced with the real token
+  in the URL. Fixed by confirming the exact token substitution — no code
+  change needed, just a URL construction mistake on my part while testing.
