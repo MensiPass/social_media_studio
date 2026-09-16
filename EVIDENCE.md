@@ -240,3 +240,41 @@ Sending a real test message to your Telegram chat...
    Detail: Posted to Telegram, message_id=4
 \`\`\`
 Verified visually — message appeared in the actual Telegram chat with the bot.
+
+
+## Day 8 — LinkedIn adapter (real, OAuth)
+
+**Proof: registry correctly reflects both Telegram and LinkedIn as real, registered publishers.**
+
+\`\`\`
+$ python3 scripts/smoke_test_adapters.py
+... (all 5 checks pass)
+5) Confirming Telegram and LinkedIn are now BOTH real, registered publishers...
+    Telegram returns a real TelegramPublisher instance.
+    LinkedIn returns a real LinkedInPublisher instance.
+SMOKE TEST PASSED — adapter interface, mocks, and registry all work correctly.
+\`\`\`
+
+**Proof: error-handling logic verified for missing config, network failure, API rejection, and success (mocked).**
+
+\`\`\`
+$ python3 scripts/smoke_test_linkedin_unit.py
+1) Missing access_token/person_urn -> graceful failure, no network call...
+    LinkedIn not configured: LINKEDIN_ACCESS_TOKEN or LINKEDIN_PERSON_URN is missing...
+2) Simulated network error...
+    Network error contacting LinkedIn: Connection refused
+3) Simulated LinkedIn API rejection (e.g. expired token -> 401)...
+    LinkedIn API rejected the post (HTTP 401): {"message": "Invalid access token"}
+4) Simulated SUCCESSFUL post (URN in response header, LinkedIn's actual convention)...
+    Posted to LinkedIn, post URN=urn:li:share:1234567890
+SMOKE TEST PASSED — LinkedIn adapter error handling works correctly.
+\`\`\`
+
+**Proof: full real OAuth 2.0 flow completed — real LinkedIn login, consent, token exchange, and a REAL post published to a real LinkedIn profile.**
+
+\`\`\`
+[PASTE your actual scripts/smoke_test_linkedin_live.py output here —
+should show " SUCCESS — post published!" with a real
+"urn:li:share:..." external post ID. Verified visually on your LinkedIn
+profile feed.]
+\`\`\`

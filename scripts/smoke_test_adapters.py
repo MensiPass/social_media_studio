@@ -14,6 +14,7 @@ from app.adapters.base import SocialPublisher
 from app.adapters.mock_x_adapter import MockXPublisher
 from app.adapters.mock_instagram_adapter import MockInstagramPublisher
 from app.adapters.telegram_adapter import TelegramPublisher
+from app.adapters.linkedin_adapter import LinkedInPublisher
 from app.adapters import registry
 from app.db.models.variant import Platform
 
@@ -63,18 +64,14 @@ def main() -> None:
     print(f"    Instagram via registry: {result_ig.external_post_id}")
     print("    Same function, same call, correctly routed to two different adapters.\n")
 
-    print("5) Confirming LinkedIn correctly raises 'not configured yet' (Day 8)...")
-    try:
-        registry.get_publisher(Platform.LINKEDIN)
-        print("    Should have raised for linkedin!")
-    except NotImplementedError as e:
-        print(f"    linkedin: correctly raised — {e}\n")
-
-    print("6) Confirming Telegram IS now registered (type check only — no real send here)...")
+    print("5) Confirming Telegram and LinkedIn are now BOTH real, registered publishers...")
     telegram_publisher = registry.get_publisher(Platform.TELEGRAM)
+    linkedin_publisher = registry.get_publisher(Platform.LINKEDIN)
     assert isinstance(telegram_publisher, TelegramPublisher)
+    assert isinstance(linkedin_publisher, LinkedInPublisher)
     print("    Telegram returns a real TelegramPublisher instance.")
-    print("   (Actual message-sending is tested separately in scripts/smoke_test_telegram_live.py)\n")
+    print("    LinkedIn returns a real LinkedInPublisher instance.")
+    print("   (Actual message-sending is tested separately in the live test scripts)\n")
 
     print("SMOKE TEST PASSED — adapter interface, mocks, and registry all work correctly.")
 

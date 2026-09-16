@@ -21,6 +21,12 @@ class Settings(BaseSettings):
     linkedin_client_id: str = ""
     linkedin_client_secret: str = ""
     linkedin_access_token: str = ""
+    linkedin_person_urn: str = ""
+    # LinkedIn ships a new API version monthly (YYYYMM format). If posting
+    # ever fails with HTTP 426 "Upgrade Required", check the current
+    # version at https://learn.microsoft.com/en-us/linkedin/marketing/versioning
+    # and update LINKEDIN_API_VERSION in .env — no code change needed.
+    linkedin_api_version: str = "202606"
 
     model_config = SettingsConfigDict(
         env_file=".env",

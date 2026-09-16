@@ -160,3 +160,36 @@ Updated daily.
   cause: the literal placeholder text wasn't replaced with the real token
   in the URL. Fixed by confirming the exact token substitution — no code
   change needed, just a URL construction mistake on my part while testing.
+
+
+  ## Day 8 — LinkedIn adapter (real, OAuth)
+
+**Where AI helped:**
+- Researched LinkedIn's CURRENT API (it deprecated the old UGC Posts
+  endpoint in favor of /rest/posts, and requires a monthly-versioned
+  LinkedIn-Version header) before writing any code, to avoid building
+  against stale documentation.
+- Made LINKEDIN_API_VERSION a .env value rather than hardcoded, since
+  LinkedIn ships a new version every month — this avoids the adapter
+  silently breaking a few weeks after being written.
+- Built the OAuth 2.0 Authorization Code flow (login -> LinkedIn consent ->
+  callback -> token exchange -> fetch member URN) as two simple endpoints,
+  deliberately without automatic token refresh — tokens last ~60 days, and
+  re-running the flow by hand when needed is simpler and more honest than
+  building refresh-token infrastructure this capstone doesn't need yet.
+
+**What I understand and can explain:**
+- Why the person URN (not just the access token) is needed to post — it's
+  the "author" field LinkedIn's Posts API requires, obtained once via
+  /v2/userinfo using the OpenID Connect scope.
+- Why the OAuth callback checks the returned `state` against a set of
+  values we generated — this is CSRF protection, preventing a forged
+  callback from being accepted.
+- Why LinkedIn returns the new post's ID in a response HEADER
+  (x-restli-id) rather than the body — a Rest.li API convention, different
+  from Telegram's JSON-body response.
+
+**What I changed / would change:**
+- Hit the same stale-server-on-port-8000 issue as Day 5 when checking
+  registered routes — same root cause (leftover process from an earlier
+  session), resolved the same way (netstat + taskkill).

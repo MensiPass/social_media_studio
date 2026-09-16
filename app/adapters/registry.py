@@ -14,6 +14,7 @@ from app.adapters.base import SocialPublisher
 from app.adapters.mock_x_adapter import MockXPublisher
 from app.adapters.mock_instagram_adapter import MockInstagramPublisher
 from app.adapters.telegram_adapter import TelegramPublisher
+from app.adapters.linkedin_adapter import LinkedInPublisher
 
 _REGISTRY: dict[Platform, SocialPublisher] = {
     Platform.X: MockXPublisher(),
@@ -21,6 +22,11 @@ _REGISTRY: dict[Platform, SocialPublisher] = {
     Platform.TELEGRAM: TelegramPublisher(
         bot_token=settings.telegram_bot_token,
         chat_id=settings.telegram_chat_id,
+    ),
+    Platform.LINKEDIN: LinkedInPublisher(
+        access_token=settings.linkedin_access_token,
+        person_urn=settings.linkedin_person_urn,
+        api_version=settings.linkedin_api_version,
     ),
 }
 
