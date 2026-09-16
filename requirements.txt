@@ -16,6 +16,10 @@ psycopg[binary]==3.2.3
 # --- Post ingestion (added Day 3) ---
 beautifulsoup4==4.12.3   # extracts readable article text from fetched HTML
 
+# --- Background scheduling (added Day 9) ---
+celery==5.4.0
+redis==5.1.1
+
 # --- Testing ---
 pytest==8.3.4
 httpx==0.28.1

@@ -278,3 +278,46 @@ should show " SUCCESS — post published!" with a real
 "urn:li:share:..." external post ID. Verified visually on your LinkedIn
 profile feed.]
 \`\`\`
+
+
+## Day 9 — Celery + Redis background scheduling
+
+**Proof: full scheduling pipeline logic verified (SQLite + Celery eager mode, no live infra needed).**
+
+\`\`\`
+$ python scripts/smoke_test_scheduling.py
+1) Creating an approved variant, scheduled 1 second in the past (already due)...
+   ✅ Slot created, status=pending
+2) Running check_due_slots() (claims + dispatches due slots)...
+   ✅ 1 slot claimed and dispatched
+3) Verifying the slot was actually published (eager mode ran it synchronously)...
+   ✅ Slot status: completed
+   ✅ Variant status: published
+4) Verifying a PublishAttempt was recorded...
+   ✅ Attempt status: success
+   ✅ External post ID: mock-x-ff26596a68
+5) Running check_due_slots() AGAIN — the completed slot should NOT be reclaimed...
+   ✅ 0 slots claimed (correctly none — already completed)
+6) Creating a FUTURE slot (not due yet) and confirming it's NOT claimed...
+   ✅ Future slot correctly left as PENDING, not claimed
+SMOKE TEST PASSED — scheduling pipeline works correctly.
+\`\`\`
+
+**Proof: REAL Celery Beat + Redis + worker pipeline, running as separate live processes, correctly scheduled and published an approved variant automatically — no manual trigger.**
+
+\`\`\`
+# Scheduled a real variant:
+$ curl -X POST http://127.0.0.1:8000/variants/6477e740.../schedule -d '{"scheduled_at":"2026-09-16T06:40:58Z"}'
+{"id":"3360e20e...","status":"pending", ...}
+
+# Worker log — Beat found and dispatched it automatically, no manual trigger:
+[08:41:04] Task app.tasks.publish_tasks.publish_slot[135a38fa-...] received
+[08:41:04] Task app.tasks.publish_tasks.publish_slot[135a38fa-...] succeeded in 0.062s
+
+# Confirmed final state:
+$ curl -s http://127.0.0.1:8000/schedule/3360e20e...
+{"status":"completed", ...}
+
+$ curl -s http://127.0.0.1:8000/variants/6477e740...
+{"status":"published", ...}
+\`\`\`

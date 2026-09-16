@@ -193,3 +193,49 @@ Updated daily.
 - Hit the same stale-server-on-port-8000 issue as Day 5 when checking
   registered routes — same root cause (leftover process from an earlier
   session), resolved the same way (netstat + taskkill).
+
+
+  ## Day 9 — Celery + Redis background scheduling
+
+**Where AI helped:**
+- Designed the two-task split (check_due_slots + publish_slot) with an
+  explicit "claim before dispatch" step — PENDING -> PUBLISHING happens
+  and commits BEFORE any task is enqueued, so a slot is never left claimed
+  without work actually dispatched for it.
+- Used module-qualified session access (`db_session.SessionLocal()`
+  instead of `from app.db.session import SessionLocal`) specifically so
+  tests could monkeypatch the session and exercise the real task functions
+  against SQLite without needing live Postgres/Redis.
+- Wrote scripts/smoke_test_scheduling.py using Celery's task_always_eager
+  mode to test the full claim-dispatch-publish cycle synchronously,
+  including confirming a completed slot is never reclaimed and a future
+  slot is correctly left alone.
+
+**What I understand and can explain:**
+- Why Beat re-reads the database every tick instead of keeping its own
+  schedule in memory — this is what makes the scheduler itself restartable
+  without losing track of anything.
+- Why claiming happens in its own transaction, committed before any task
+  is enqueued — the ordering matters: claim-then-enqueue means the worst
+  case on a crash is a stuck PUBLISHING slot (fixable), never a duplicate
+  publish from double-dispatch.
+
+**What I changed / would change — two real infrastructure issues hit and fixed:**
+
+1. **Windows + Celery's default `prefork` pool is broken.** The worker
+   crashed immediately with `PermissionError: [WinError 5] Access is
+   denied` from `billiard` (Celery's multiprocessing library) — a known
+   Windows incompatibility with the default worker pool. Fixed by running
+   with `--pool=solo` instead, which uses a single process instead of a
+   multiprocessing pool. Fine for this project's scale.
+
+2. **Local time vs. UTC confusion during manual testing.** Celery's log
+   timestamps print in local system time, not UTC. I initially asked for a
+   test time based on matching the log's displayed clock to a "1 minute
+   from now" guess, without accounting for the ~2 hour UTC offset — the
+   slot was correctly NOT claimed for over 10 minutes because, in real
+   UTC terms, it genuinely wasn't due yet. The actual scheduling logic was
+   correct the entire time. Fixed by computing the scheduled_at value with
+   `datetime.now(timezone.utc)` in Python directly, rather than eyeballing
+   a time from local log output — removes the human timezone-math step
+   entirely.
