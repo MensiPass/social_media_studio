@@ -284,3 +284,34 @@ Updated daily.
    block but referenced in a separate terminal invocation where it didn't
    exist — not a code bug, a shell-session mistake. Fixed by keeping all
    dependent commands in one continuous terminal session.
+
+
+   ## Day 11 — Publish history + hardening
+
+**Where AI helped:**
+- Built /history and /schedule/{id}/attempts as a join across
+  PublishAttempt -> ScheduleSlot -> Variant, so each entry is
+  self-contained (platform, scheduled time, actual attempt time) without
+  requiring the caller to stitch together separate lookups.
+- Converted the ad-hoc smoke_test_*.py scripts into a real, discoverable
+  pytest suite (tests/conftest.py fixtures + tests/test_review_workflow.py
+  + tests/test_adapters.py) — capstone.yaml has always declared `test:
+  pytest`, but until today that command found zero tests. Deliberately
+  kept the Telegram/LinkedIn LIVE scripts out of the pytest suite so
+  running `pytest` never sends a real message or post.
+- Reused an existing tests/conftest.py found already in place (fixtures
+  `client` and `db`) rather than duplicating a slightly different version —
+  one source of truth for test fixtures.
+
+**What I understand and can explain:**
+- Why the idempotency/crash-recovery tests need their OWN fixture
+  (task_db) rather than the shared client/db fixtures — they need to patch
+  app.db.session.SessionLocal AND enable Celery's eager mode, which is
+  more setup than a plain API test needs.
+- Why Telegram/LinkedIn's real network tests are scripts, not pytest
+  tests — a test suite that might text a real Telegram chat or post to a
+  real LinkedIn profile every time someone runs `pytest` would be
+  actively harmful, not just slow.
+
+**What I changed / would change:**
+- (none needed — clean run, matched sandbox verification exactly)

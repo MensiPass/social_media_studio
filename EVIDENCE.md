@@ -372,3 +372,41 @@ $ curl -s http://127.0.0.1:8000/schedule/0fcd0d3f...
 $ curl -s http://127.0.0.1:8000/schedule/0fcd0d3f...
 {"status":"completed", ...}
 \`\`\`
+
+
+## Day 11 — Publish history + hardening
+
+**Proof: full automated pytest suite passes (16 tests, run with plain `pytest`).**
+
+\`\`\`
+$ pytest -v
+tests/test_adapters.py::test_social_publisher_cannot_be_instantiated_directly PASSED
+tests/test_adapters.py::test_mock_x_publisher_returns_success_and_records_post PASSED
+tests/test_adapters.py::test_registry_swap_same_calling_code_different_platforms PASSED
+tests/test_adapters.py::test_registry_returns_real_telegram_and_linkedin_instances PASSED
+tests/test_adapters.py::test_duplicate_publish_call_creates_only_one_attempt PASSED
+tests/test_adapters.py::test_stuck_slot_is_recovered_and_completes PASSED
+tests/test_adapters.py::test_completed_slot_is_never_reclaimed_by_recovery PASSED
+tests/test_review_workflow.py::test_approve_draft_variant_succeeds PASSED
+tests/test_review_workflow.py::test_approving_twice_is_refused PASSED
+tests/test_review_workflow.py::test_reject_blank_reason_is_rejected PASSED
+tests/test_review_workflow.py::test_reject_then_edit_resets_to_draft PASSED
+tests/test_review_workflow.py::test_editing_an_approved_variant_is_refused PASSED
+tests/test_review_workflow.py::test_editing_with_a_constraint_violation_is_blocked PASSED
+tests/test_review_workflow.py::test_scheduling_an_unapproved_variant_is_refused PASSED
+tests/test_review_workflow.py::test_scheduling_an_approved_variant_succeeds PASSED
+tests/test_review_workflow.py::test_review_actions_on_nonexistent_variant_return_404 PASSED
+======================== 16 passed, 1 warning in 0.79s ========================
+\`\`\`
+
+**Proof: publish history endpoint shows real attempts from real Postgres, across multiple days of live testing, newest first.**
+
+\`\`\`
+$ curl -s http://127.0.0.1:8000/history
+[
+  {"platform":"x","status":"success","external_post_id":"mock-x-419841bc06", "attempted_at":"2026-09-17T06:37:41Z", ...},
+  {"platform":"x","status":"success","external_post_id":"mock-x-07f7827594", "attempted_at":"2026-09-17T06:34:42Z", ...},
+  {"platform":"x","status":"success","external_post_id":"mock-x-51e60cbeeb", "attempted_at":"2026-09-17T06:31:57Z", ...},
+  {"platform":"x","status":"success","external_post_id":"mock-x-153d9c6d44", "attempted_at":"2026-09-16T06:41:04Z", ...}
+]
+\`\`\`
