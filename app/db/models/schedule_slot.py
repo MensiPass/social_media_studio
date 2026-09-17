@@ -57,6 +57,14 @@ class ScheduleSlot(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+    # Added Day 10: tracks when status last changed. This is how crash
+    # recovery tells "actively being processed right now" apart from
+    # "claimed 5 minutes ago and never finished — the worker that claimed
+    # it is dead." Without this, a stuck PUBLISHING slot would be stuck
+    # forever, since check_due_slots only looks at PENDING slots.
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
     variant: Mapped["Variant"] = relationship(back_populates="schedule_slots")
     publish_attempts: Mapped[list["PublishAttempt"]] = relationship(

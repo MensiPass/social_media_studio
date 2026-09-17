@@ -28,6 +28,12 @@ class Settings(BaseSettings):
     # and update LINKEDIN_API_VERSION in .env — no code change needed.
     linkedin_api_version: str = "202606"
 
+    # --- Crash recovery (added Day 10) ---
+    # A slot claimed (PENDING -> PUBLISHING) longer than this without
+    # finishing is treated as "the worker that claimed it died" and gets
+    # safely re-dispatched. Lower this temporarily for faster live testing.
+    stuck_slot_threshold_seconds: int = 120
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

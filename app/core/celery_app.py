@@ -37,4 +37,9 @@ celery_app.conf.beat_schedule = {
         "task": "app.tasks.publish_tasks.check_due_slots",
         "schedule": 30.0,  # seconds
     },
+    "recover-stuck-schedule-slots": {
+        "task": "app.tasks.publish_tasks.recover_stuck_slots",
+        "schedule": 60.0,  # seconds — checks less often than the main loop,
+                            # since being stuck for a bit is expected/fine
+    },
 }

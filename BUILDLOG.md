@@ -239,3 +239,48 @@ Updated daily.
    `datetime.now(timezone.utc)` in Python directly, rather than eyeballing
    a time from local log output — removes the human timezone-math step
    entirely.
+
+
+   ## Day 10 — Idempotency + crash recovery
+
+**Where AI helped:**
+- Designed two separate idempotency guards in publish_slot rather than
+  one: guard #1 (status==COMPLETED) handles the common retry case cheaply;
+  guard #2 (existing successful PublishAttempt) handles the narrower case
+  where a crash happened between recording success and updating status.
+- Designed recover_stuck_slots as a fully separate periodic task rather
+  than folding recovery logic into check_due_slots — keeps "find new work"
+  and "recover abandoned work" as clearly separate concerns.
+- Documented an honest, known limitation in the code and here: a crash in
+  the exact window between the external platform accepting a post and our
+  DB recording that success is not fully solvable without the external
+  platform itself supporting idempotency keys (which Telegram/LinkedIn
+  don't for posts). This is an industry-standard hard limit, not a gap in
+  our design — what we guarantee is no duplicate from retries or from
+  recovering genuinely-abandoned work.
+
+**What I understand and can explain:**
+- Why recover_stuck_slots is safe to call as often as we like, even
+  redundantly — it's the idempotency guards in publish_slot that make
+  re-dispatching harmless, not any special logic in recovery itself.
+- Why updated_at (not created_at) is what crash recovery checks — it needs
+  to know when the slot was last CLAIMED, not when it was originally
+  scheduled.
+
+**What I changed / would change — two real issues hit and fixed during live testing:**
+
+1. **Postgres enum labels are the Python enum's NAME, not its `.value`.**
+   A manual SQL UPDATE using lowercase 'publishing' (matching the JSON API's
+   serialized form) failed with "invalid input value for enum
+   slot_status_enum". SQLAlchemy's Enum type stores each member's `.name`
+   (uppercase, e.g. PUBLISHING) as the actual database label by default —
+   the lowercase value seen in API responses is a separate, cosmetic
+   Pydantic serialization layer. Only affects raw SQL written by hand; the
+   application code itself never hits this since SQLAlchemy translates
+   transparently. Fixed by using the uppercase label in the manual query.
+
+2. **Bash variable scope across terminal sessions.** An earlier attempt at
+   the crash-recovery test failed because $SLOT_ID was set in one command
+   block but referenced in a separate terminal invocation where it didn't
+   exist — not a code bug, a shell-session mistake. Fixed by keeping all
+   dependent commands in one continuous terminal session.

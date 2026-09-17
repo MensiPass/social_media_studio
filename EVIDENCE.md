@@ -321,3 +321,54 @@ $ curl -s http://127.0.0.1:8000/schedule/3360e20e...
 $ curl -s http://127.0.0.1:8000/variants/6477e740...
 {"status":"published", ...}
 \`\`\`
+
+
+## Day 10 — Idempotency + crash recovery
+
+**Proof: idempotency guards and crash recovery logic verified (SQLite + Celery eager mode).**
+
+\`\`\`
+$ python scripts/smoke_test_idempotency.py
+1) Same publish_slot() call fired TWICE for the same slot...
+   ✅ Called publish_slot() twice, but the adapter was only actually called 1 time.
+   ✅ Exactly 1 PublishAttempt row exists.
+2) A successful attempt exists, but slot status is still PUBLISHING...
+   ✅ Publisher was NOT called again (idempotency guard #2 worked).
+   ✅ Slot/variant status correctly reconciled to completed/published.
+3) A slot stuck in PUBLISHING for longer than the threshold gets recovered...
+   ✅ 1 stuck slot found and successfully recovered.
+4) Running recover_stuck_slots() AGAIN — must NOT be reclaimed...
+   ✅ 0 slots recovered (correctly none — already completed).
+SMOKE TEST PASSED — idempotency guards and crash recovery work correctly.
+\`\`\`
+
+**Proof: REAL double-publish, via the actual Redis broker and a real Celery worker — exactly one attempt recorded despite two calls.**
+
+\`\`\`
+$ python scripts/live_check_idempotency.py b700e0ae-2bc3-46db-b13b-9599254c6652
+Enqueuing publish_slot for slot b700e0ae-2bc3-46db-b13b-9599254c6652 TWICE in a row...
+PublishAttempt rows found for this slot: 1
+  - status=success, external_post_id=mock-x-51e60cbeeb
+✅ Exactly ONE attempt recorded despite TWO publish calls — idempotency confirmed.
+\`\`\`
+
+**Proof: REAL crash recovery — a slot manually forced into PUBLISHING (simulating a worker that claimed it and died) was found and completed automatically by recover_stuck_slots, with no manual trigger.**
+
+\`\`\`
+# Simulated the crash directly in Postgres:
+$ docker exec -it sms_postgres psql -U studio_user -d social_studio -c "
+UPDATE schedule_slots SET status = 'PUBLISHING', updated_at = NOW() - INTERVAL '1 minute'
+WHERE id = '0fcd0d3f-1104-469c-ac44-3f6b42288e64';"
+UPDATE 1
+
+# Confirmed slot was stuck:
+$ curl -s http://127.0.0.1:8000/schedule/0fcd0d3f...
+{"status":"publishing", ...}
+
+# Beat found it and dispatched recovery automatically on its next tick —
+# no manual publish call made by us at any point after the simulated crash.
+
+# Confirmed final state:
+$ curl -s http://127.0.0.1:8000/schedule/0fcd0d3f...
+{"status":"completed", ...}
+\`\`\`
