@@ -34,6 +34,17 @@ class Settings(BaseSettings):
     # safely re-dispatched. Lower this temporarily for faster live testing.
     stuck_slot_threshold_seconds: int = 120
 
+    # --- Adapter routing (added Day 12) ---
+    # Which adapter implementation handles each platform. Changing these
+    # values (in .env) swaps adapters WITHOUT touching any code — this is
+    # what makes the adapter pattern's config-swap promise actually real,
+    # not just theoretical. Valid values: mock_x, mock_instagram,
+    # telegram, linkedin.
+    adapter_map_x: str = "mock_x"
+    adapter_map_instagram: str = "mock_instagram"
+    adapter_map_telegram: str = "telegram"
+    adapter_map_linkedin: str = "linkedin"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

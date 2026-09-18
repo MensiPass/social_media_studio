@@ -315,3 +315,39 @@ Updated daily.
 
 **What I changed / would change:**
 - (none needed — clean run, matched sandbox verification exactly)
+
+
+## Day 12 — Final polish, config-driven adapter routing, submission prep
+
+**Where AI helped:**
+- Ran a full self-check against the brief's Section 5 requirements AND its
+  6 specific acceptance probes (not just the requirements list) — this
+  surfaced a real gap: adapter routing was hardcoded in Python, which
+  would have failed Probe 6 ("swap the adapter in configuration... no code
+  change outside the adapters") despite the adapter PATTERN being correct.
+- Rebuilt the registry to read platform->adapter assignment from .env
+  (ADAPTER_MAP_*) instead of a hardcoded dict, and added a permanent
+  regression test proving the swap works with zero code changes.
+- Wrote scripts/seed.py so the system is immediately inspectable after
+  setup, and the final comprehensive README (architecture diagram, full
+  setup, adapter-swap docs, honest limitations section).
+- Also surfaced the Probe 4 gap (see EVIDENCE.md) and presented it as an
+  explicit decision rather than silently leaving it unaddressed — declined
+  by choice, not by oversight.
+
+**What I understand and can explain:**
+- Why the registry rebuilds itself from settings at import time rather
+  than lazily on each call — matches how a real process restart after an
+  .env change would behave, and keeps get_publisher() simple (a plain
+  dict lookup, no per-call config re-reading).
+- Why the config-swap test uses importlib.reload() rather than just
+  monkeypatching the settings object — the registry dict itself is built
+  ONCE at module import time, so proving a live .env-style change actually
+  takes effect requires rebuilding it, the same way a real restart would.
+
+**What I changed / would change:**
+- Caught my own test-harness bug while verifying seed.py: called
+  Base.metadata.create_all() before importing any model files, so zero
+  tables were registered (SQLAlchemy only creates tables for already-
+  imported models). Not a bug in seed.py itself — fixed the test, not the
+  script.

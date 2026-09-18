@@ -410,3 +410,61 @@ $ curl -s http://127.0.0.1:8000/history
   {"platform":"x","status":"success","external_post_id":"mock-x-153d9c6d44", "attempted_at":"2026-09-16T06:41:04Z", ...}
 ]
 \`\`\`
+
+
+## Day 12 — Final polish, config-driven adapter routing, submission prep
+
+**Proof: full pytest suite passes with the new config-swap test included (17 tests).**
+
+\`\`\`
+$ pytest -v
+... (all 17 tests, including test_adapter_swap_via_config_only_no_code_change)
+======================== 17 passed, 1 warning in 0.88s ========================
+\`\`\`
+
+**Proof: Probe 6 satisfied for real — adapter swap via .env only, verified against your actual environment.**
+
+\`\`\`
+$ ADAPTER_MAP_TELEGRAM=mock_x python -c "
+from app.adapters import registry
+from app.db.models.variant import Platform
+print(type(registry.get_publisher(Platform.TELEGRAM)).__name__)
+"
+MockXPublisher
+\`\`\`
+
+**Proof: seed script populates a working demo dataset.**
+
+\`\`\`
+$ python scripts/seed.py
+✅ Created seed post: 3f554947-e1c5-480b-9c32-7dfc4ca316ce
+✅ Created 4 draft variants (one per platform)
+✅ Approved the X variant (8612c721-d0f2-4f07-bba6-8ce21600d758) as a review-workflow demo
+\`\`\`
+
+**Proof: all 4 core tables present in Postgres (confirmed throughout the project, reconfirmed here).**
+
+\`\`\`
+$ docker exec -it sms_postgres psql -U studio_user -d social_studio -c "\dt"
+ public | alembic_version  | table
+ public | posts            | table
+ public | publish_attempts | table
+ public | schedule_slots   | table
+ public | variants         | table
+\`\`\`
+
+---
+
+## Final requirements self-check (against Section 5 of the brief)
+
+- [x] Ingestion (URL/Markdown, stored, source of truth) — Day 3
+- [x] Constraint profiles enforced by code, proven with a blocked variant — Day 4
+- [x] Review workflow (draft/approved/rejected/published), unapproved schedule refused with 4xx — Day 5, 9
+- [x] Adapter layer: 1 interface, 2 REAL platforms (exceeds 1 minimum) + 2 mocks, config-only swap — Day 6-8, 12
+- [x] Idempotent publish: real double-call via real Redis/Celery -> exactly 1 attempt — Day 10
+- [x] Durable scheduling: simulated real crash -> automatic recovery, zero duplicates — Day 10
+- [x] Publish history visible — Day 11
+- [x] Secrets clean (.env/.env.example only) — throughout
+- [x] README: architecture diagram, full setup, honest limitations — Day 12
+
+**Known, documented, deliberate scope decision:** Probe 4 (a real platform publish happening through the live scheduler in one combined test) was evaluated as a real evidence gap during the Day 12 self-check. Decided not to close it — existing evidence (real Telegram send, Day 7; real Beat+worker auto-publish, Day 9, using a mock target) covers the same mechanisms separately. Documented here rather than left as a silent gap.

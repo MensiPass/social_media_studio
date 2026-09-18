@@ -60,6 +60,34 @@ def test_registry_returns_real_telegram_and_linkedin_instances():
     assert isinstance(registry.get_publisher(Platform.LINKEDIN), LinkedInPublisher)
 
 
+def test_adapter_swap_via_config_only_no_code_change(monkeypatch):
+    """
+    The brief's explicit acceptance check: swap an adapter via
+    configuration (e.g. telegram -> mock_x), same calling code, no code
+    change outside the adapters themselves. We simulate the .env change by
+    monkeypatching the setting, then rebuild the registry the same way
+    app startup does.
+    """
+    import importlib
+    from app.core import config as config_module
+
+    monkeypatch.setattr(config_module.settings, "adapter_map_telegram", "mock_x")
+
+    # Rebuild the registry fresh, exactly like a real process restart
+    # after an .env change would.
+    importlib.reload(registry)
+
+    publisher = registry.get_publisher(Platform.TELEGRAM)
+    assert isinstance(publisher, MockXPublisher)
+
+    result = publisher.publish("Config-swap test")
+    assert result.success is True
+    assert result.external_post_id.startswith("mock-x-")
+
+    # Restore the module to its normal state for any tests that run after this one.
+    importlib.reload(registry)
+
+
 # ---------------------------------------------------------------------
 # Idempotency + crash recovery
 # (self-contained fixture: needs to patch app.db.session.SessionLocal AND
