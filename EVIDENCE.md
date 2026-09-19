@@ -1,9 +1,7 @@
 # Evidence
 
 One proof per requirement, added the day it's completed.
-
 ---
-
 ## Day 1 — Environment & skeleton
 
 **Proof: FastAPI app boots and responds correctly.**
@@ -412,7 +410,7 @@ $ curl -s http://127.0.0.1:8000/history
 \`\`\`
 
 
-## Day 12 — Final polish, config-driven adapter routing, submission prep
+## Day 12 — Final polish, config-driven adapter routing
 
 **Proof: full pytest suite passes with the new config-swap test included (17 tests).**
 

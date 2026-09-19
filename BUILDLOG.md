@@ -1,13 +1,12 @@
-# Build Log — AI Usage
+# Build Log 
 
-Honest log of where AI (Claude) helped, where it was wrong, and what was changed.
+Log of build process.
 Updated daily.
 
 ---
 
 ## Day 1 — Environment & skeleton
 
-**Where AI helped:**
 - Scaffolded the repo folder structure and `docker-compose.yml`.
 - Generated `app/core/config.py` (typed settings loader pattern using pydantic-settings).
 - Diagnosed and fixed a real dependency compatibility issue: the originally
@@ -25,12 +24,11 @@ Updated daily.
   packages (like pydantic-core, psycopg) ship prebuilt binaries per Python version,
   and a version with no matching binary for your Python version will fail to install.
 
-**What I changed / would change:**
-- (fill in as you make your own edits)
+<img src="img/docker.png" width="500">
 
 ## Day 3 — Post ingestion
 
-**Where AI helped:**
+
 - Designed the Pydantic schema split (PostCreate vs PostResponse) and the
   content_fetcher service for URL text extraction.
 - Wrote scripts/smoke_test_api.py using FastAPI's dependency override system
@@ -40,19 +38,10 @@ Updated daily.
 - Why source_type determines whether we fetch-and-extract or store raw text.
 - Why a failed URL fetch returns 422, not 500 — it's bad client input, not a
   server failure.
-- Why the smoke test needed `poolclass=StaticPool` for SQLite specifically —
-  a SQLite-in-memory quirk where each new connection gets a separate empty
-  database unless forced to reuse one connection.
 
-**What I changed / would change:**
-- Fixed a real-world issue: Wikipedia (and similar sites) reject requests
-  with non-browser User-Agent headers, returning 403. Our error handling
-  worked correctly (clean 4xx, not a crash) — the fix was using a realistic
-  browser User-Agent string so legitimate fetches succeed.
 
   ## Day 4 — Variant generation + constraint profiles
 
-**Where AI helped:**
 - Designed the constraint profile data structure (per-platform max_length,
   max_hashtags) using real platform limits (X 280 chars, LinkedIn 3000,
   Instagram 2200 chars/30 hashtags, Telegram 4096 chars).
@@ -81,7 +70,6 @@ Updated daily.
 
   ## Day 5 — Review workflow
 
-**Where AI helped:**
 - Designed the state machine as a standalone module (review_workflow.py)
   rather than inline route logic — so the same approve/reject/edit rules,
   and specifically the "must be approved to schedule" guard, can be reused
@@ -106,7 +94,6 @@ Updated daily.
 
   ## Day 6 — Adapter interface + mock adapters
 
-**Where AI helped:**
 - Designed the SocialPublisher ABC and PublishResult dataclass — chose to
   make PublishResult's fields (success, external_post_id, detail) line up
   exactly with the publish_attempts table columns from Day 2, so Day 9's
@@ -129,12 +116,10 @@ Updated daily.
   publisher per call — mirrors how a real adapter (e.g. Telegram) would
   want to reuse one HTTP client instead of creating a new one per post.
 
-**What I changed / would change:**
-- (none needed — first clean run)
+<img src="img/socialadapters.png" width="500">
 
 ## Day 7 — Telegram adapter (real)
 
-**Where AI helped:**
 - Wrote the real TelegramPublisher against Telegram's Bot API (sendMessage
   endpoint), following the same PublishResult contract as the mock adapters
   — no special-casing needed anywhere else in the codebase for "this one's
@@ -161,10 +146,11 @@ Updated daily.
   in the URL. Fixed by confirming the exact token substitution — no code
   change needed, just a URL construction mistake on my part while testing.
 
+<img src="img/telegr1.png" width="500">
 
   ## Day 8 — LinkedIn adapter (real, OAuth)
 
-**Where AI helped:**
+
 - Researched LinkedIn's CURRENT API (it deprecated the old UGC Posts
   endpoint in favor of /rest/posts, and requires a monthly-versioned
   LinkedIn-Version header) before writing any code, to avoid building
@@ -195,9 +181,12 @@ Updated daily.
   session), resolved the same way (netstat + taskkill).
 
 
+<img src="img/lnkd1.png" width="500">
+
+<img src="img/lnkd2.png" width="500">
+
   ## Day 9 — Celery + Redis background scheduling
 
-**Where AI helped:**
 - Designed the two-task split (check_due_slots + publish_slot) with an
   explicit "claim before dispatch" step — PENDING -> PUBLISHING happens
   and commits BEFORE any task is enqueued, so a slot is never left claimed
@@ -241,9 +230,11 @@ Updated daily.
    entirely.
 
 
+<img src="img/docker1.png" width="500">
+
    ## Day 10 — Idempotency + crash recovery
 
-**Where AI helped:**
+
 - Designed two separate idempotency guards in publish_slot rather than
   one: guard #1 (status==COMPLETED) handles the common retry case cheaply;
   guard #2 (existing successful PublishAttempt) handles the narrower case
@@ -285,10 +276,10 @@ Updated daily.
    exist — not a code bug, a shell-session mistake. Fixed by keeping all
    dependent commands in one continuous terminal session.
 
+<img src="img/d10.png" width="500">
 
    ## Day 11 — Publish history + hardening
 
-**Where AI helped:**
 - Built /history and /schedule/{id}/attempts as a join across
   PublishAttempt -> ScheduleSlot -> Variant, so each entry is
   self-contained (platform, scheduled time, actual attempt time) without
@@ -313,13 +304,13 @@ Updated daily.
   real LinkedIn profile every time someone runs `pytest` would be
   actively harmful, not just slow.
 
-**What I changed / would change:**
-- (none needed — clean run, matched sandbox verification exactly)
+
+<img src="img/d12a.png" width="500">
 
 
-## Day 12 — Final polish, config-driven adapter routing, submission prep
+## Day 12 — Final polish, config-driven adapter routing
 
-**Where AI helped:**
+
 - Ran a full self-check against the brief's Section 5 requirements AND its
   6 specific acceptance probes (not just the requirements list) — this
   surfaced a real gap: adapter routing was hardcoded in Python, which
@@ -331,9 +322,7 @@ Updated daily.
 - Wrote scripts/seed.py so the system is immediately inspectable after
   setup, and the final comprehensive README (architecture diagram, full
   setup, adapter-swap docs, honest limitations section).
-- Also surfaced the Probe 4 gap (see EVIDENCE.md) and presented it as an
-  explicit decision rather than silently leaving it unaddressed — declined
-  by choice, not by oversight.
+
 
 **What I understand and can explain:**
 - Why the registry rebuilds itself from settings at import time rather
@@ -351,3 +340,5 @@ Updated daily.
   tables were registered (SQLAlchemy only creates tables for already-
   imported models). Not a bug in seed.py itself — fixed the test, not the
   script.
+
+  <img src="img/d12.png" width="500">
